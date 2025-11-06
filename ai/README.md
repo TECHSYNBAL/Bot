@@ -1,5 +1,10 @@
 # Telegram Mini App - Flutter
 
++ gradient
++ bottom
++ model
++ hosting
+
 A simple one-page Telegram Mini App built with Flutter that displays "Hello" text.
 
 ## Setup
