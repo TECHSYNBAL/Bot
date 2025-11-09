@@ -173,7 +173,7 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(15),
+                  padding: const EdgeInsets.all(30),
                   decoration: const BoxDecoration(
                     color: Colors.black,
                   ),
@@ -184,40 +184,116 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 // Add your second child here
-                if (!_isFocused) ...[
-                  const SizedBox(
-                    width: 100,
-                    height: 50,
-                    child: Center(
-                      child: Text('Child 1',
-                          style: TextStyle(color: Colors.white)),
+                if (!_isFocused)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/icons/connect.svg',
+                                  width: 20,
+                                  height: 20,
+                                  colorFilter: const ColorFilter.mode(
+                                    Colors.white,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                const SizedBox(
+                                  height: 20,
+                                  child: Center(
+                                    child: Text(
+                                      'Connect',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 15),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/icons/create.svg',
+                                  width: 20,
+                                  height: 20,
+                                  colorFilter: const ColorFilter.mode(
+                                    Colors.white,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                const SizedBox(
+                                  height: 20,
+                                  child: Center(
+                                    child: Text(
+                                      'Create',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 15),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/icons/import.svg',
+                                  width: 20,
+                                  height: 20,
+                                  colorFilter: const ColorFilter.mode(
+                                    Colors.white,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                const SizedBox(
+                                  height: 20,
+                                  child: Center(
+                                    child: Text(
+                                      'Import',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const Center(
+                          child: Text(
+                            'wallet',
+                            style: TextStyle(
+                              color: Color(0xFF818181),
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(
-                    width: 100,
-                    height: 50,
-                    child: Center(
-                      child: Text('Child 2',
-                          style: TextStyle(color: Colors.white)),
-                    ),
-                  ),
-                  const SizedBox(
-                    width: 100,
-                    height: 50,
-                    child: Center(
-                      child: Text('Child 3',
-                          style: TextStyle(color: Colors.white)),
-                    ),
-                  ),
-                  const SizedBox(
-                    width: 100,
-                    height: 50,
-                    child: Center(
-                      child: Text('Child 4',
-                          style: TextStyle(color: Colors.white)),
-                    ),
-                  ),
-                ],
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(15),
@@ -779,7 +855,7 @@ class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
                                       style: const TextStyle(
                                         fontFamily: 'Aeroport',
                                         fontSize: 20,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w400,
                                         color: Colors.white,
                                       ),
                                       textAlign: TextAlign.left,
@@ -806,7 +882,7 @@ class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
                                             style: const TextStyle(
                                               fontFamily: 'Aeroport',
                                               fontSize: 15,
-                                              fontWeight: FontWeight.w500,
+                                              fontWeight: FontWeight.w400,
                                               color: Colors.white,
                                             ),
                                             textAlign: TextAlign.left,
@@ -819,7 +895,7 @@ class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
                                         style: const TextStyle(
                                           fontFamily: 'Aeroport',
                                           fontSize: 15,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.w400,
                                           color: Colors.red,
                                         ),
                                         textAlign: TextAlign.left,
@@ -830,7 +906,7 @@ class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
                                         style: const TextStyle(
                                           fontFamily: 'Aeroport',
                                           fontSize: 15,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.w400,
                                           color: Colors.white,
                                         ),
                                         textAlign: TextAlign.left,
@@ -841,7 +917,7 @@ class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
                                         style: TextStyle(
                                           fontFamily: 'Aeroport',
                                           fontSize: 15,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.w400,
                                           color: Colors.white,
                                         ),
                                       ),

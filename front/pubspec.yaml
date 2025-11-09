@@ -25,6 +25,9 @@ flutter:
   assets:
     - assets/images/logo.svg
     - assets/icons/apply.svg
+    - assets/icons/connect.svg
+    - assets/icons/create.svg
+    - assets/icons/import.svg
   
   # Fonts configuration
   fonts:
