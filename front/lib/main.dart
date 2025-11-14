@@ -330,13 +330,22 @@ class _HomePageState extends State<HomePage> {
                                       color: Color(0xFF818181),
                                     )),
                               ]),
-                          const SizedBox(height: 15),
-                          const Row()
                         ]),
                       ),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 20),
+                        child: SvgPicture.asset(
+                          '/icons/rotate.svg',
+                          width: 30,
+                          height: 30,
+                        ),
+                      ),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 20),
                         child: Column(children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -446,7 +455,8 @@ class _HomePageState extends State<HomePage> {
                         ]),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10.0, horizontal: 20.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
