@@ -1,5 +1,14 @@
 {
+  "functions": {
+    "api/config.js": {
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/config",
+      "destination": "/api/config.js"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:js' as js;
 import 'analytics.dart';
 
 class DiagonalLinePainter extends CustomPainter {
@@ -477,11 +478,15 @@ class _HomePageState extends State<HomePage> {
         'to': timeRange['to']!,
       });
 
+      print('Fetching chart data from: $uri');
       final response = await http.get(uri);
+      print('Chart API response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('Chart API response data keys: ${data.keys.toList()}');
         final points = data['points'] as List<dynamic>?;
+        print('Chart points count: ${points?.length ?? 0}');
 
         if (points != null && points.isNotEmpty) {
           // Extract timestamp from the first point (oldest after reversal)
@@ -512,16 +517,49 @@ class _HomePageState extends State<HomePage> {
           }
 
           // Extract and convert price values
-          var prices = points.map((point) {
-            final valueObj = point['value'];
-            final valueStr = valueObj['value'] as String;
-            final decimals = valueObj['decimals'] as int;
+          var prices = <double>[];
+          print('Parsing ${points.length} chart points...');
+          for (var point in points) {
+            try {
+              final valueObj = point['value'];
+              if (valueObj == null) {
+                print('Warning: point missing value field: $point');
+                continue;
+              }
 
-            // Convert to real value: value * 10^(-decimals)
-            final value = int.parse(valueStr);
-            final realValue = value * math.pow(10, -decimals);
-            return realValue.toDouble();
-          }).toList();
+              final valueStr = valueObj['value'] as String?;
+              final decimals = valueObj['decimals'] as int?;
+
+              if (valueStr == null || decimals == null) {
+                print('Warning: value or decimals missing in point: $point');
+                continue;
+              }
+
+              // Convert to real value: value * 10^(-decimals)
+              final value = int.parse(valueStr);
+              final realValue = value * math.pow(10, -decimals);
+              prices.add(realValue.toDouble());
+            } catch (e) {
+              print('Error parsing chart point: $e, point: $point');
+              continue;
+            }
+          }
+
+          print(
+              'Successfully parsed ${prices.length} prices from ${points.length} points');
+
+          if (prices.isEmpty) {
+            print('Error: No prices could be parsed from chart data');
+            setState(() {
+              _chartDataPoints = null;
+              _chartMinPrice = null;
+              _chartMaxPrice = null;
+              _chartFirstTimestamp = null;
+              _chartLastTimestamp = null;
+              _isLoadingChart = false;
+            });
+            return;
+          }
 
           // Reverse the array - API likely returns newest-first, but we need oldest-first for chart
           prices = prices.reversed.toList();
@@ -1796,10 +1834,9 @@ class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
   // List to store all Q&A pairs
   final List<QAPair> _qaPairs = [];
   final String _apiUrl = 'https://xp7k-production.up.railway.app';
-  // API Key - set via environment variable at build time or use const
-  // For production, set this via build-time environment or use a config approach
-  final String _apiKey =
-      const String.fromEnvironment('API_KEY', defaultValue: '');
+  // API Key - read from window.APP_CONFIG.API_KEY at runtime
+  String? _apiKey;
+  bool _isLoadingApiKey = false;
   late AnimationController _dotsController;
 
   // Input field controllers
@@ -1830,6 +1867,10 @@ class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
         _isInputFocused = _inputFocusNode.hasFocus;
       });
     });
+
+    // Load API key from Vercel serverless function (reads from env vars at runtime)
+    // Don't await here - it will load in the background
+    _loadApiKey();
 
     // Listen to scroll changes to detect manual scrolling and update scrollbar
     _scrollController.addListener(() {
@@ -1983,9 +2024,108 @@ class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _loadApiKey() async {
+    // Prevent multiple simultaneous loads
+    if (_isLoadingApiKey) {
+      print('API key load already in progress, waiting...');
+      // Wait for existing load to complete
+      while (_isLoadingApiKey) {
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+      return;
+    }
+
+    _isLoadingApiKey = true;
+    try {
+      // Try to fetch API key from Vercel serverless function
+      // This reads from Vercel's environment variables at runtime
+      final uri = Uri.parse('/api/config');
+
+      try {
+        final response = await http.get(uri);
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final apiKey = data['apiKey'] as String?;
+
+          if (apiKey != null && apiKey.isNotEmpty) {
+            _apiKey = apiKey;
+            if (mounted) {
+              setState(() {
+                _apiKey = apiKey;
+              });
+            }
+            print(
+                'API key loaded from Vercel environment variable: ${apiKey.substring(0, apiKey.length > 10 ? 10 : apiKey.length)}...');
+            _isLoadingApiKey = false;
+            return;
+          } else {
+            print('API key from serverless function is empty or null');
+          }
+        } else {
+          print('API key fetch failed with status: ${response.statusCode}');
+        }
+      } catch (e) {
+        print('Error fetching API key from serverless function: $e');
+      }
+
+      // Fallback: try to read from window.APP_CONFIG (for local development)
+      try {
+        final apiKeyJs = js.context.callMethod(
+            'eval', ['window.APP_CONFIG && window.APP_CONFIG.API_KEY || ""']);
+
+        if (apiKeyJs != null) {
+          final apiKey = apiKeyJs.toString();
+          if (apiKey.isNotEmpty && apiKey != '{{API_KEY}}') {
+            _apiKey = apiKey;
+            if (mounted) {
+              setState(() {
+                _apiKey = apiKey;
+              });
+            }
+            print('API key loaded from window.APP_CONFIG (fallback)');
+            _isLoadingApiKey = false;
+            return;
+          }
+        }
+      } catch (e) {
+        print('Error reading API key from window: $e');
+      }
+
+      print('API key not found');
+      _apiKey = '';
+      if (mounted) {
+        setState(() {
+          _apiKey = '';
+        });
+      }
+    } catch (e) {
+      print('Error loading API key: $e');
+      _apiKey = '';
+      if (mounted) {
+        setState(() {
+          _apiKey = '';
+        });
+      }
+    } finally {
+      _isLoadingApiKey = false;
+    }
+  }
+
   Future<void> _fetchAIResponse(QAPair pair) async {
     try {
-      if (_apiKey.isEmpty) {
+      // Wait for API key to be loaded if not set
+      if (_apiKey == null || _apiKey!.isEmpty) {
+        print('API key not set, loading...');
+        await _loadApiKey();
+        // Wait a bit more to ensure state is updated
+        await Future.delayed(const Duration(milliseconds: 200));
+        print(
+            'After loading, API key is: ${_apiKey != null && _apiKey!.isNotEmpty ? "set (length: ${_apiKey!.length})" : "empty"}');
+      }
+
+      if (_apiKey == null || _apiKey!.isEmpty) {
+        print('API key still empty after loading attempt');
         if (mounted) {
           setState(() {
             pair.error =
@@ -1997,12 +2137,14 @@ class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
         return;
       }
 
+      print('Using API key for request (length: ${_apiKey!.length})');
+
       final request = http.Request(
         'POST',
         Uri.parse('$_apiUrl/api/chat'),
       );
       request.headers['Content-Type'] = 'application/json';
-      request.headers['X-API-Key'] = _apiKey;
+      request.headers['X-API-Key'] = _apiKey ?? '';
       request.body = jsonEncode({'message': pair.question});
 
       final client = http.Client();

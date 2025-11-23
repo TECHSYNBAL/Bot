@@ -26,9 +26,16 @@ if [ ! -d "build/web" ]; then
     exit 1
 fi
 
-# Copy vercel.json to build directory
-echo "Copying Vercel configuration..."
+# Copy vercel.json and API functions to build directory
+echo "Copying Vercel configuration and API functions..."
 cp vercel.json build/web/vercel.json
+
+# Copy API serverless function
+if [ -d "api" ]; then
+    mkdir -p build/web/api
+    cp -r api/* build/web/api/
+    echo "API functions copied"
+fi
 
 # Check if Vercel CLI is installed
 if ! command -v vercel &> /dev/null; then

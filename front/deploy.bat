@@ -4,9 +4,16 @@ REM Build Flutter web app
 echo Building Flutter web app...
 flutter build web --release
 
-REM Copy vercel.json to build directory
-echo Copying Vercel configuration...
+REM Copy vercel.json and API functions to build directory
+echo Copying Vercel configuration and API functions...
 copy vercel.json build\web\vercel.json
+
+REM Copy API serverless function
+if exist api (
+    if not exist build\web\api mkdir build\web\api
+    xcopy /E /I /Y api build\web\api
+    echo API functions copied
+)
 
 REM Deploy to Vercel
 echo Deploying to Vercel...

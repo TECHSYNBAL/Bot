@@ -1,0 +1,12 @@
+{
+  "name": "xp7k-frontend",
+  "version": "1.0.0",
+  "description": "Flutter web app with API key injection",
+  "scripts": {
+    "postbuild": "node scripts/inject-api-key.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
+

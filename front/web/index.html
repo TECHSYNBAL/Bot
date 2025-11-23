@@ -276,6 +276,13 @@
 </head>
 <body style="background-color: #000000; margin: 0; padding: 0;">
   <script>
+    // API key will be loaded at runtime from /api/config serverless function
+    // This reads from Vercel's environment variables
+    // Fallback for local development (can be set manually)
+    window.APP_CONFIG = {
+      API_KEY: '' // Will be fetched from serverless function at runtime
+    };
+    
     // Fallback if main.dart.js doesn't load
     window.addEventListener('error', function(e) {
       console.error('Error loading Flutter app:', e);
