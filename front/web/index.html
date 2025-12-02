@@ -54,6 +54,45 @@
   <link rel="stylesheet" href="styles.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/@tma.js/sdk@2.5.0/dist/index.iife.js"></script>
+  <script>
+    // Initialize @tma.js/sdk and expose it globally for Dart interop
+    (function() {
+      // Wait for the SDK to be available
+      function initTmaSdk() {
+        try {
+          // Check if @tma.js/sdk is available (it exposes itself as window.initTmaSdk or similar)
+          // The IIFE version exposes the SDK at window.tmajs
+          if (window.tmajs && window.tmajs.init) {
+            // Initialize the SDK
+            const sdk = window.tmajs.init();
+            
+            // Expose initialized SDK globally for Dart
+            window.tmaSdk = sdk;
+            console.log('@tma.js/sdk initialized:', sdk);
+            return true;
+          } else if (window.tmajs && window.tmajs.sdk) {
+            // Fallback: SDK might already be initialized
+            window.tmaSdk = window.tmajs.sdk;
+            console.log('@tma.js/sdk already available');
+            return true;
+          }
+        } catch (e) {
+          console.warn('Error initializing @tma.js/sdk:', e);
+        }
+        return false;
+      }
+      
+      // Try to initialize immediately
+      if (!initTmaSdk()) {
+        // Retry after a short delay
+        setTimeout(function() {
+          if (!initTmaSdk()) {
+            console.warn('@tma.js/sdk not available after retry');
+          }
+        }, 100);
+      }
+    })();
+  </script>
   <!-- Vercel Analytics -->
   <!-- This script is automatically provided by Vercel when deployed -->
   <script defer src="/_vercel/insights/script.js"></script>

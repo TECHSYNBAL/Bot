@@ -1,5 +1,6 @@
 adaptation
-get screen design
+history
+get
 fix styles everywhere
 hovers
 flashing on apply
@@ -15,7 +16,8 @@ rotation
 different screens adaptation
 ton connect
 menu screen layout
-ton/tg rag
+ton & tg rag
+tn & mn msgs
 
 ai failed to connect
 mobile tma scroll on responce generating
