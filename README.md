@@ -1,4 +1,4 @@
-![Prospectus](https://raw.githubusercontent.com/TECHSYMBAL/Bot/refs/heads/main/Frame%2026%20(3).png)
+![Prospectus](https://raw.githubusercontent.com/TECHSYNBAL/Bot/refs/heads/main/ChatGPT%20Image%2016%20%D0%B4%D0%B5%D0%BA.%202025%20%D0%B3.%2C%2008_36_18%202.png)
 
 This is a monorepo containing multiple services.
 
