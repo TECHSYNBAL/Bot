@@ -29,7 +29,6 @@ flutter:
     - assets/icons/
     - assets/icons/menu/
     - assets/sample/
-    - .env
   
   # Fonts configuration
   fonts:
