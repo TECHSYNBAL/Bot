@@ -8,7 +8,6 @@ import 'dart:js' as js;
 import 'dart:async';
 import 'dart:ui' as ui show TextDirection;
 import 'package:flutter_telegram_miniapp/flutter_telegram_miniapp.dart' as tma;
-import 'package:intl/intl.dart';
 import 'analytics.dart';
 import 'telegram_safe_area.dart';
 import 'telegram_webapp.dart';
@@ -849,7 +848,7 @@ class _MyAppState extends State<MyApp> {
       valueListenable: AppTheme.colorSchemeNotifier,
       builder: (context, colorScheme, child) {
         return MaterialApp(
-          title: 'Telegram Mini App',
+          title: "Hype N' Links",
           builder: (context, child) {
             return Stack(
               children: [
@@ -2185,7 +2184,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<double>? _chartDataPoints;
   bool _isLoadingChart = true;
   String? _chartError; // Error message for chart loading
-  String _selectedResolution = 'min1'; // Default: min1 (m)
+  String _selectedResolution = 'day1'; // Default: day1 (d)
   double? _chartMinPrice;
   double? _chartMaxPrice;
   DateTime? _chartFirstTimestamp;
@@ -2223,6 +2222,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   // Market stats state variables
   static const String _tokensApiUrl = 'https://tokens.swap.coffee';
+  double? _priceUsd; // Current price in USD
   double? _mcap;
   double? _fdmc;
   double? _volume24h;
@@ -2365,6 +2365,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return formatted;
   }
 
+  /// Get the resolution label for display
+  String _getResolutionLabel() {
+    switch (_selectedResolution) {
+      case 'day1':
+        return '(Day)';
+      case 'hour1':
+        return '(Hour)';
+      case 'min15':
+        return '(15m)';
+      case 'min1':
+        return '(1m)';
+      default:
+        return '';
+    }
+  }
+
   /// Calculate the maximum width needed for price column
   /// Takes into account ALL prices in the chart data to prevent dynamic width changes
   double _calculateMaxPriceWidth() {
@@ -2440,9 +2456,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         final timeStr =
             '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
         if (timestampDate == today) {
-          return '$timeStr, today';
+          return '$timeStr, Today';
         } else if (timestampDate == yesterday) {
-          return '$timeStr, yesterday';
+          return '$timeStr, Yesterday';
         } else {
           // Fallback to date if not today or yesterday
           return '$timeStr, ${timestamp.day.toString().padLeft(2, '0')}/${timestamp.month.toString().padLeft(2, '0')}';
@@ -2488,7 +2504,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             children: [
               TextSpan(text: timeStr),
               const TextSpan(
-                text: ', today',
+                text: ', Today',
                 style: TextStyle(fontWeight: FontWeight.normal),
               ),
             ],
@@ -2509,7 +2525,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             children: [
               TextSpan(text: timeStr),
               const TextSpan(
-                text: ', yesterday',
+                text: ', Yesterday',
                 style: TextStyle(fontWeight: FontWeight.normal),
               ),
             ],
@@ -2580,7 +2596,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               children: [
                 TextSpan(text: timeStr),
                 const TextSpan(
-                  text: ', today',
+                  text: ', Today',
                   style: TextStyle(fontWeight: FontWeight.normal),
                 ),
               ],
@@ -2591,7 +2607,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               children: [
                 TextSpan(text: timeStr),
                 const TextSpan(
-                  text: ', yesterday',
+                  text: ', Yesterday',
                   style: TextStyle(fontWeight: FontWeight.normal),
                 ),
               ],
@@ -2928,7 +2944,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             children: [
               TextSpan(text: timeStr),
               const TextSpan(
-                text: ', today',
+                text: ', Today',
                 style: TextStyle(fontWeight: FontWeight.normal),
               ),
             ],
@@ -2975,12 +2991,76 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         );
       }
     } else {
-      // For other resolutions, use regular Text
+      // For other resolutions, check if we should show special labels
+      String displayText;
+      
+      // Check if this is the first (oldest) timestamp and we have a last (newest) timestamp
+      if (_chartFirstTimestamp != null && 
+          _chartLastTimestamp != null && 
+          timestamp.year == _chartFirstTimestamp!.year &&
+          timestamp.month == _chartFirstTimestamp!.month &&
+          timestamp.day == _chartFirstTimestamp!.day &&
+          timestamp.hour == _chartFirstTimestamp!.hour &&
+          timestamp.minute == _chartFirstTimestamp!.minute) {
+        
+        // Check if first timestamp is exactly one year ago from last timestamp (Day resolution)
+        if (_selectedResolution == 'day1') {
+          final oneYearAgo = DateTime(
+            _chartLastTimestamp!.year - 1,
+            _chartLastTimestamp!.month,
+            _chartLastTimestamp!.day,
+          );
+          final firstDate = DateTime(
+            _chartFirstTimestamp!.year,
+            _chartFirstTimestamp!.month,
+            _chartFirstTimestamp!.day,
+          );
+          
+          if (firstDate.year == oneYearAgo.year &&
+              firstDate.month == oneYearAgo.month &&
+              firstDate.day == oneYearAgo.day) {
+            displayText = 'A Year Ago';
+          } else {
+            displayText = _formatTimestamp(timestamp);
+          }
+        }
+        // Check if first timestamp is exactly one month ago from last timestamp (Hour resolution)
+        else if (_selectedResolution == 'hour1') {
+          final lastDate = DateTime(
+            _chartLastTimestamp!.year,
+            _chartLastTimestamp!.month,
+            _chartLastTimestamp!.day,
+          );
+          // Calculate one month ago, handling year rollover
+          final oneMonthAgo = lastDate.month == 1
+              ? DateTime(lastDate.year - 1, 12, lastDate.day)
+              : DateTime(lastDate.year, lastDate.month - 1, lastDate.day);
+          final firstDate = DateTime(
+            _chartFirstTimestamp!.year,
+            _chartFirstTimestamp!.month,
+            _chartFirstTimestamp!.day,
+          );
+          
+          if (firstDate.year == oneMonthAgo.year &&
+              firstDate.month == oneMonthAgo.month &&
+              firstDate.day == oneMonthAgo.day) {
+            displayText = 'A Month Ago';
+          } else {
+            displayText = _formatTimestamp(timestamp);
+          }
+        } else {
+          displayText = _formatTimestamp(timestamp);
+        }
+      } else {
+        displayText = _formatTimestamp(timestamp);
+      }
+      
       textWidget = Text(
-        _formatTimestamp(timestamp),
+        displayText,
         style: const TextStyle(
           fontSize: 10,
           color: Color(0xFF818181),
+          fontWeight: FontWeight.normal,
           height: 1.0, // Fixed line height to prevent layout shift
         ),
         textHeightBehavior: const TextHeightBehavior(
@@ -3335,6 +3415,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
         if (marketStats != null) {
           setState(() {
+            _priceUsd = (marketStats['price_usd'] as num?)?.toDouble();
             _mcap = (marketStats['mcap'] as num?)?.toDouble();
             _fdmc = (marketStats['fdmc'] as num?)?.toDouble();
             _volume24h = (marketStats['volume_usd_24h'] as num?)?.toDouble();
@@ -3674,7 +3755,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Text('Toncoin',
+                                              Text('Toncoin ${_getResolutionLabel()}',
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w400,
                                                     color: AppTheme.textColor,
@@ -3682,11 +3763,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                   )),
                                               const SizedBox.shrink(),
                                               Text(
-                                                '${_formatPercentage(_priceChange24h)} (24H)',
+                                                _priceUsd != null
+                                                    ? '\$${_formatPrice(_priceUsd!)}'
+                                                    : '\$...',
                                                 style: TextStyle(
-                                                  fontWeight: FontWeight.w300,
+                                                  fontWeight: FontWeight.w400,
                                                   color: AppTheme.textColor,
-                                                  fontSize: 15,
+                                                  fontSize: 20,
                                                 ),
                                               ),
                                             ],
@@ -3698,52 +3781,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                 onTap: () {
                                                   setState(() {
                                                     _selectedResolution =
-                                                        _resolutionMap['m']!;
+                                                        _resolutionMap['d']!;
                                                   });
                                                   _fetchChartData();
                                                 },
                                                 child: Text(
-                                                  "m",
+                                                  "d",
                                                   style: TextStyle(
                                                     fontWeight:
                                                         _selectedResolution ==
                                                                 _resolutionMap[
-                                                                    'm']
+                                                                    'd']
                                                             ? FontWeight.normal
                                                             : FontWeight.w500,
                                                     color:
                                                         _selectedResolution ==
                                                                 _resolutionMap[
-                                                                    'm']
-                                                            ? AppTheme.textColor
-                                                            : const Color(
-                                                                0xFF818181),
-                                                    fontSize: 15,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 15),
-                                              GestureDetector(
-                                                onTap: () {
-                                                  setState(() {
-                                                    _selectedResolution =
-                                                        _resolutionMap['q']!;
-                                                  });
-                                                  _fetchChartData();
-                                                },
-                                                child: Text(
-                                                  "q",
-                                                  style: TextStyle(
-                                                    fontWeight:
-                                                        _selectedResolution ==
-                                                                _resolutionMap[
-                                                                    'q']
-                                                            ? FontWeight.normal
-                                                            : FontWeight.w500,
-                                                    color:
-                                                        _selectedResolution ==
-                                                                _resolutionMap[
-                                                                    'q']
+                                                                    'd']
                                                             ? AppTheme.textColor
                                                             : const Color(
                                                                 0xFF818181),
@@ -3785,23 +3839,52 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                                 onTap: () {
                                                   setState(() {
                                                     _selectedResolution =
-                                                        _resolutionMap['d']!;
+                                                        _resolutionMap['q']!;
                                                   });
                                                   _fetchChartData();
                                                 },
                                                 child: Text(
-                                                  "d",
+                                                  "q",
                                                   style: TextStyle(
                                                     fontWeight:
                                                         _selectedResolution ==
                                                                 _resolutionMap[
-                                                                    'd']
+                                                                    'q']
                                                             ? FontWeight.normal
                                                             : FontWeight.w500,
                                                     color:
                                                         _selectedResolution ==
                                                                 _resolutionMap[
-                                                                    'd']
+                                                                    'q']
+                                                            ? AppTheme.textColor
+                                                            : const Color(
+                                                                0xFF818181),
+                                                    fontSize: 15,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 15),
+                                              GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    _selectedResolution =
+                                                        _resolutionMap['m']!;
+                                                  });
+                                                  _fetchChartData();
+                                                },
+                                                child: Text(
+                                                  "m",
+                                                  style: TextStyle(
+                                                    fontWeight:
+                                                        _selectedResolution ==
+                                                                _resolutionMap[
+                                                                    'm']
+                                                            ? FontWeight.normal
+                                                            : FontWeight.w500,
+                                                    color:
+                                                        _selectedResolution ==
+                                                                _resolutionMap[
+                                                                    'm']
                                                             ? AppTheme.textColor
                                                             : const Color(
                                                                 0xFF818181),
@@ -3954,6 +4037,30 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                               Text(
                                                 _formatPercentage(
                                                     _priceChange6h),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w300,
+                                                  color: Color(0xFF818181),
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                '24H',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w400,
+                                                  color: AppTheme.textColor,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 5),
+                                              Text(
+                                                _formatPercentage(
+                                                    _priceChange24h),
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w300,
                                                   color: Color(0xFF818181),
