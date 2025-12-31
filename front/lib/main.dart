@@ -1004,6 +1004,22 @@ void main() async {
   runApp(const MyApp());
 }
 
+// No animation page transition builder
+class NoAnimationPageTransitionsBuilder extends PageTransitionsBuilder {
+  const NoAnimationPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
+}
+
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -1043,17 +1059,34 @@ class _MyAppState extends State<MyApp> {
         return MaterialApp(
           title: "Hype N' Links",
           builder: (context, child) {
-            return Stack(
-              children: [
-                if (child != null) child,
-                const GlobalBottomBar(),
-              ],
+            return SizedBox.expand(
+              child: Container(
+                color: AppTheme.backgroundColor,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (child != null) child,
+                    const GlobalLogoBar(),
+                    const GlobalBottomBar(),
+                  ],
+                ),
+              ),
             );
           },
           // Use default theme without Material fonts to avoid loading errors
           theme: ThemeData(
             useMaterial3: false,
             scaffoldBackgroundColor: AppTheme.backgroundColor,
+            pageTransitionsTheme: const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.iOS: NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.macOS: NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.windows: NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.linux: NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.fuchsia: NoAnimationPageTransitionsBuilder(),
+              },
+            ),
             fontFamily: 'Aeroport',
             textTheme: TextTheme(
               bodyLarge: TextStyle(
@@ -1153,6 +1186,91 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
+// Global logo bar widget that appears on all pages
+class GlobalLogoBar extends StatelessWidget {
+  const GlobalLogoBar({super.key});
+
+  // Helper method to calculate logo top padding
+  static double _getLogoTopPadding() {
+    final service = TelegramSafeAreaService();
+    
+    // Check if we're in a browser (Telegram WebApp not available)
+    // In browser, safe area insets are not available, so use fallback
+    if (!service.isAvailable) {
+      // Browser fallback: use 30px top padding
+      return 30.0;
+    }
+    
+    final safeAreaInset = service.getSafeAreaInset();
+    final contentSafeAreaInset = service.getContentSafeAreaInset();
+
+    // If both insets are zero (browser or no safe area data), use fallback
+    if (safeAreaInset.isEmpty && contentSafeAreaInset.isEmpty) {
+      // Browser fallback: use 30px top padding
+      return 30.0;
+    }
+
+    // Formula: top SafeAreaInset + (top ContentSafeAreaInset / 2) - 16
+    // This centers the 32px logo in the content safe area zone, respecting the upper inset
+    final topPadding = safeAreaInset.top + (contentSafeAreaInset.top / 2) - 16;
+    return topPadding;
+  }
+
+  // Helper method to calculate logo block height
+  // Logo block consists of: top padding + logo (32px) + bottom padding (10px)
+  static double getLogoBlockHeight() {
+    const logoHeight = 32.0;
+    const bottomPadding = 10.0;
+    
+    return _getLogoTopPadding() + logoHeight + bottomPadding;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: SafeArea(
+        bottom: false,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(
+                top: _getLogoTopPadding(),
+                bottom: 10,
+                left: 15,
+                right: 15),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: ValueListenableBuilder<String?>(
+                  valueListenable: AppTheme.colorSchemeNotifier,
+                  builder: (context, colorScheme, child) {
+                    return SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: SvgPicture.asset(
+                        AppTheme.isLightTheme
+                            ? 'assets/images/logo_light.svg'
+                            : 'assets/images/logo_dark.svg',
+                        width: 32,
+                        height: 32,
+                        key: const ValueKey('global_logo'),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // Global bottom bar widget that appears on all pages
 class GlobalBottomBar extends StatefulWidget {
   const GlobalBottomBar({super.key});
@@ -1205,8 +1323,10 @@ class _GlobalBottomBarState extends State<GlobalBottomBar> {
 
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => NewPage(title: text),
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => NewPage(title: text),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
         ),
       ).then((_) {
         _controller.clear();
@@ -1380,32 +1500,6 @@ class SimpleMainPage extends StatefulWidget {
 
 class _SimpleMainPageState extends State<SimpleMainPage>
     with TickerProviderStateMixin {
-  // Helper method to calculate logo top padding
-  double _getLogoTopPadding() {
-    final service = TelegramSafeAreaService();
-    
-    // Check if we're in a browser (Telegram WebApp not available)
-    // In browser, safe area insets are not available, so use fallback
-    if (!service.isAvailable) {
-      // Browser fallback: use 30px top padding
-      return 30.0;
-    }
-    
-    final safeAreaInset = service.getSafeAreaInset();
-    final contentSafeAreaInset = service.getContentSafeAreaInset();
-
-    // If both insets are zero (browser or no safe area data), use fallback
-    if (safeAreaInset.isEmpty && contentSafeAreaInset.isEmpty) {
-      // Browser fallback: use 30px top padding
-      return 30.0;
-    }
-
-    // Formula: top SafeAreaInset + (top ContentSafeAreaInset / 2) - 16
-    // This centers the 32px logo in the content safe area zone, respecting the upper inset
-    final topPadding = safeAreaInset.top + (contentSafeAreaInset.top / 2) - 16;
-    return topPadding;
-  }
-
   // Helper method to calculate adaptive bottom padding
   double _getAdaptiveBottomPadding() {
     final service = TelegramSafeAreaService();
@@ -1624,96 +1718,85 @@ class _SimpleMainPageState extends State<SimpleMainPage>
         child: SafeArea(
           bottom: false,
           child: Padding(
-            padding: EdgeInsets.only(bottom: _getAdaptiveBottomPadding()),
+            padding: EdgeInsets.only(
+                bottom: _getAdaptiveBottomPadding(),
+                top: GlobalLogoBar.getLogoBlockHeight() + 10, // Logo block height + 10px spacing
+                left: 15,
+                right: 15),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.only(
-                          top: _getLogoTopPadding(),
-                          bottom: 15,
-                          left: 15,
-                          right: 15),
-                      child: Column(
+                    // Hash row with icons - content part
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          SvgPicture.asset(
-                            AppTheme.isLightTheme
-                                ? 'assets/images/logo_light.svg'
-                                : 'assets/images/logo_dark.svg',
-                            width: 32,
-                            height: 32,
+                          const Text(
+                            '..xk5str4e',
+                            style: TextStyle(
+                              fontFamily: 'Aeroport Mono',
+                              fontSize: 15,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFF818181),
+                            ),
                           ),
-                          const SizedBox(height: 15),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text(
-                                '..xk5str4e',
-                                style: TextStyle(
-                                  fontFamily: 'Aeroport Mono',
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w400,
-                                  color: Color(0xFF818181),
+                              GestureDetector(
+                                onTap: () {
+                                  // Copy action
+                                },
+                                child: SvgPicture.asset(
+                                  'assets/icons/copy.svg',
+                                  width: 30,
+                                  height: 30,
                                 ),
                               ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      // Copy action
-                                    },
-                                    child: SvgPicture.asset(
-                                      'assets/icons/copy.svg',
-                                      width: 30,
-                                      height: 30,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 15),
-                                  GestureDetector(
-                                    onTap: () {
-                                      // Edit action
-                                    },
-                                    child: SvgPicture.asset(
-                                      'assets/icons/edit.svg',
-                                      width: 30,
-                                      height: 30,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 15),
-                                  GestureDetector(
-                                    onTap: () {
-                                      // Edit action
-                                    },
-                                    child: SvgPicture.asset(
-                                      'assets/icons/key.svg',
-                                      width: 30,
-                                      height: 30,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 15),
-                                  GestureDetector(
-                                    onTap: () {
-                                      // Exit action
-                                    },
-                                    child: SvgPicture.asset(
-                                      'assets/icons/exit.svg',
-                                      width: 30,
-                                      height: 30,
-                                    ),
-                                  ),
-                                ],
+                              const SizedBox(width: 15),
+                              GestureDetector(
+                                onTap: () {
+                                  // Edit action
+                                },
+                                child: SvgPicture.asset(
+                                  'assets/icons/edit.svg',
+                                  width: 30,
+                                  height: 30,
+                                ),
+                              ),
+                              const SizedBox(width: 15),
+                              GestureDetector(
+                                onTap: () {
+                                  // Edit action
+                                },
+                                child: SvgPicture.asset(
+                                  'assets/icons/key.svg',
+                                  width: 30,
+                                  height: 30,
+                                ),
+                              ),
+                              const SizedBox(width: 15),
+                              GestureDetector(
+                                onTap: () {
+                                  // Exit action
+                                },
+                                child: SvgPicture.asset(
+                                  'assets/icons/exit.svg',
+                                  width: 30,
+                                  height: 30,
+                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 15),
+                        ],
+                      ),
+                    ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -1802,8 +1885,10 @@ class _SimpleMainPageState extends State<SimpleMainPage>
                                   onTap: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const HomePage(),
+                                      PageRouteBuilder(
+                                        pageBuilder: (context, animation, secondaryAnimation) => const HomePage(),
+                                        transitionDuration: Duration.zero,
+                                        reverseTransitionDuration: Duration.zero,
                                       ),
                                     );
                                   },
@@ -1849,8 +1934,10 @@ class _SimpleMainPageState extends State<SimpleMainPage>
                                   onTap: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const TradePage(),
+                                      PageRouteBuilder(
+                                        pageBuilder: (context, animation, secondaryAnimation) => const TradePage(),
+                                        transitionDuration: Duration.zero,
+                                        reverseTransitionDuration: Duration.zero,
                                       ),
                                     );
                                   },
@@ -2300,9 +2387,6 @@ class _SimpleMainPageState extends State<SimpleMainPage>
                                 );
                               }).toList(),
                             ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -2322,32 +2406,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  // Helper method to calculate logo top padding
-  double _getLogoTopPadding() {
-    final service = TelegramSafeAreaService();
-    
-    // Check if we're in a browser (Telegram WebApp not available)
-    // In browser, safe area insets are not available, so use fallback
-    if (!service.isAvailable) {
-      // Browser fallback: use 30px top padding
-      return 30.0;
-    }
-    
-    final safeAreaInset = service.getSafeAreaInset();
-    final contentSafeAreaInset = service.getContentSafeAreaInset();
-
-    // If both insets are zero (browser or no safe area data), use fallback
-    if (safeAreaInset.isEmpty && contentSafeAreaInset.isEmpty) {
-      // Browser fallback: use 30px top padding
-      return 30.0;
-    }
-
-    // Formula: top SafeAreaInset + (top ContentSafeAreaInset / 2) - 16
-    // This centers the 32px logo in the content safe area zone, respecting the upper inset
-    final topPadding = safeAreaInset.top + (contentSafeAreaInset.top / 2) - 16;
-    return topPadding;
-  }
-
   // Helper method to calculate adaptive bottom padding
   double _getAdaptiveBottomPadding() {
     final service = TelegramSafeAreaService();
@@ -3905,7 +3963,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         child: SafeArea(
           bottom: false,
           child: Padding(
-            padding: EdgeInsets.only(bottom: _getAdaptiveBottomPadding()),
+            padding: EdgeInsets.only(
+                bottom: _getAdaptiveBottomPadding(),
+                top: GlobalLogoBar.getLogoBlockHeight() + 10),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
@@ -3913,21 +3973,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.only(
-                          top: _getLogoTopPadding(),
-                          bottom: 15,
-                          left: 15,
-                          right: 15),
-                      child: SvgPicture.asset(
-                        AppTheme.isLightTheme
-                            ? 'assets/images/logo_light.svg'
-                            : 'assets/images/logo_dark.svg',
-                        width: 30,
-                        height: 30,
-                      ),
-                    ),
                     Expanded(
                         child: Padding(
                           padding: EdgeInsets.only(bottom: _getGlobalBottomBarHeight() - 30),
@@ -4783,32 +4828,6 @@ class QAPair {
 }
 
 class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
-  // Helper method to calculate logo top padding
-  double _getLogoTopPadding() {
-    final service = TelegramSafeAreaService();
-    
-    // Check if we're in a browser (Telegram WebApp not available)
-    // In browser, safe area insets are not available, so use fallback
-    if (!service.isAvailable) {
-      // Browser fallback: use 30px top padding
-      return 30.0;
-    }
-    
-    final safeAreaInset = service.getSafeAreaInset();
-    final contentSafeAreaInset = service.getContentSafeAreaInset();
-
-    // If both insets are zero (browser or no safe area data), use fallback
-    if (safeAreaInset.isEmpty && contentSafeAreaInset.isEmpty) {
-      // Browser fallback: use 30px top padding
-      return 30.0;
-    }
-
-    // Formula: top SafeAreaInset + (top ContentSafeAreaInset / 2) - 16
-    // This centers the 32px logo in the content safe area zone, respecting the upper inset
-    final topPadding = safeAreaInset.top + (contentSafeAreaInset.top / 2) - 16;
-    return topPadding;
-  }
-
   // Helper method to calculate adaptive bottom padding
   double _getAdaptiveBottomPadding() {
     final service = TelegramSafeAreaService();
@@ -5266,7 +5285,9 @@ class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
         body: SafeArea(
           bottom: false,
           child: Padding(
-            padding: EdgeInsets.only(bottom: _getAdaptiveBottomPadding()),
+            padding: EdgeInsets.only(
+                bottom: _getAdaptiveBottomPadding(),
+                top: GlobalLogoBar.getLogoBlockHeight() + 10),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
@@ -5278,30 +5299,6 @@ class _NewPageState extends State<NewPage> with TickerProviderStateMixin {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context)
-                              .popUntil((route) => route.isFirst);
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.only(
-                              top: _getLogoTopPadding(),
-                              bottom: 30,
-                              left: 30,
-                              right: 30),
-                          decoration: BoxDecoration(
-                            color: AppTheme.backgroundColor,
-                          ),
-                          child: SvgPicture.asset(
-                            AppTheme.isLightTheme
-                                ? 'assets/images/logo_light.svg'
-                                : 'assets/images/logo_dark.svg',
-                            width: 30,
-                            height: 30,
-                          ),
-                        ),
-                      ),
                       Expanded(
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -5492,32 +5489,6 @@ class _TradePageState extends State<TradePage> with TickerProviderStateMixin {
   }
   
   StreamSubscription<tma.BackButton>? _backButtonSubscription;
-
-  // Helper method to calculate logo top padding
-  double _getLogoTopPadding() {
-    final service = TelegramSafeAreaService();
-    
-    // Check if we're in a browser (Telegram WebApp not available)
-    // In browser, safe area insets are not available, so use fallback
-    if (!service.isAvailable) {
-      // Browser fallback: use 30px top padding
-      return 30.0;
-    }
-    
-    final safeAreaInset = service.getSafeAreaInset();
-    final contentSafeAreaInset = service.getContentSafeAreaInset();
-
-    // If both insets are zero (browser or no safe area data), use fallback
-    if (safeAreaInset.isEmpty && contentSafeAreaInset.isEmpty) {
-      // Browser fallback: use 30px top padding
-      return 30.0;
-    }
-
-    // Formula: top SafeAreaInset + (top ContentSafeAreaInset / 2) - 16
-    // This centers the 32px logo in the content safe area zone, respecting the upper inset
-    final topPadding = safeAreaInset.top + (contentSafeAreaInset.top / 2) - 16;
-    return topPadding;
-  }
 
   // Helper method to calculate adaptive bottom padding
   double _getAdaptiveBottomPadding() {
@@ -5716,14 +5687,16 @@ class _TradePageState extends State<TradePage> with TickerProviderStateMixin {
         child: SafeArea(
           bottom: false,
           child: Padding(
-            padding: EdgeInsets.only(bottom: _getAdaptiveBottomPadding()),
+            padding: EdgeInsets.only(
+                bottom: _getAdaptiveBottomPadding(),
+                top: GlobalLogoBar.getLogoBlockHeight() + 10),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
                 child: Container(
                   width: double.infinity,
-                  padding: EdgeInsets.only(
-                    top: _getLogoTopPadding(),
+                  padding: const EdgeInsets.only(
+                    top: 30,
                     bottom: 15,
                     left: 15,
                     right: 15,
