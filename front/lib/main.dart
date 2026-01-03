@@ -2230,16 +2230,35 @@ class _SimpleMainPageState extends State<SimpleMainPage>
                               GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    _selectedTab = 'Coins';
+                                    _selectedTab = 'Chat';
                                   });
                                 },
                                 child: Text(
-                                  'Coins',
+                                  'Chat',
                                   style: TextStyle(
                                     fontFamily: 'Aeroport',
                                     fontSize: 20,
                                     fontWeight: FontWeight.w500,
-                                    color: _selectedTab == 'Coins'
+                                    color: _selectedTab == 'Chat'
+                                        ? AppTheme.textColor
+                                        : const Color(0xFF818181),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 15),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedTab = 'Play';
+                                  });
+                                },
+                                child: Text(
+                                  'Play',
+                                  style: TextStyle(
+                                    fontFamily: 'Aeroport',
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w500,
+                                    color: _selectedTab == 'Play'
                                         ? AppTheme.textColor
                                         : const Color(0xFF818181),
                                   ),
@@ -2268,16 +2287,16 @@ class _SimpleMainPageState extends State<SimpleMainPage>
                               GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    _selectedTab = 'Chat';
+                                    _selectedTab = 'Coins';
                                   });
                                 },
                                 child: Text(
-                                  'Chat',
+                                  'Coins',
                                   style: TextStyle(
                                     fontFamily: 'Aeroport',
                                     fontSize: 20,
                                     fontWeight: FontWeight.w500,
-                                    color: _selectedTab == 'Chat'
+                                    color: _selectedTab == 'Coins'
                                         ? AppTheme.textColor
                                         : const Color(0xFF818181),
                                   ),
@@ -2430,6 +2449,19 @@ class _SimpleMainPageState extends State<SimpleMainPage>
                                   ),
                                 );
                               }).toList(),
+                            ),
+                          // Play content - shown when Play tab is selected
+                          if (_selectedTab == 'Play')
+                            const Center(
+                              child: Text(
+                                'Play',
+                                style: TextStyle(
+                                  fontFamily: 'Aeroport',
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF818181),
+                                ),
+                              ),
                             ),
                           // Coins list - shown when Coins tab is selected
                           if (_selectedTab == 'Coins')
