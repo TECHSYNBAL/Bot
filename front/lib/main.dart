@@ -1170,6 +1170,11 @@ class _MyAppState extends State<MyApp> {
               fontWeight: FontWeight.w500,
               color: AppTheme.textColor),
         ),
+        scrollbarTheme: ScrollbarThemeData(
+          thickness: WidgetStateProperty.all(0.0),
+          thumbVisibility: WidgetStateProperty.all(false),
+          trackVisibility: WidgetStateProperty.all(false),
+        ),
       ),
       debugShowCheckedModeBanner: false,
       home: const SimpleMainPage(),
@@ -1546,7 +1551,7 @@ class _GlobalBottomBarState extends State<GlobalBottomBar> {
             top: false,
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
+                constraints: const BoxConstraints(maxWidth: 630),
                 child: Padding(
                   padding: const EdgeInsets.only(left: 15, right: 15),
                   child: Row(
@@ -1706,6 +1711,12 @@ class _SimpleMainPageState extends State<SimpleMainPage>
     return bottomPadding;
   }
 
+  // Helper method to calculate GlobalBottomBar height
+  double _getGlobalBottomBarHeight() {
+    // Minimum height: container padding (10 + 15) + TextField minHeight (30)
+    return 10.0 + 30.0 + 15.0;
+  }
+
   String _selectedTab = 'Feed'; // Default selected tab
 
   // Mock coin data
@@ -1747,11 +1758,29 @@ class _SimpleMainPageState extends State<SimpleMainPage>
     ];
   }
 
+  // Items data for Items tab grid
+  List<Map<String, dynamic>> get _items {
+    return [
+      {
+        'icon': 'assets/sample/item.svg',
+        'title': 'CLATH 41',
+        'subtitle': 'AI CLATH',
+      },
+    ];
+  }
+
   late final AnimationController _bgController;
   late final Animation<double> _bgAnimation;
   late final double _bgSeed;
   late final AnimationController _noiseController;
   late final Animation<double> _noiseAnimation;
+  
+  // Scroll controller for main content
+  final ScrollController _mainScrollController = ScrollController();
+  
+  // Scroll indicator state
+  double _scrollIndicatorHeight = 1.0;
+  double _scrollProgress = 0.0;
 
   @override
   void initState() {
@@ -1775,12 +1804,49 @@ class _SimpleMainPageState extends State<SimpleMainPage>
       parent: _noiseController,
       curve: Curves.easeInOut,
     ));
+    
+    // Listen to scroll changes to update scroll indicator
+    _mainScrollController.addListener(_updateScrollIndicator);
+    
+    // Calculate initial scroll indicator state after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateScrollIndicator();
+    });
+  }
+
+  // Update scroll indicator state
+  void _updateScrollIndicator() {
+    if (_mainScrollController.hasClients) {
+      final position = _mainScrollController.position;
+      final maxScroll = position.maxScrollExtent;
+      final currentScroll = position.pixels;
+      final viewportHeight = position.viewportDimension;
+      final totalHeight = viewportHeight + maxScroll;
+
+      // Update scrollbar
+      if (maxScroll > 0 && totalHeight > 0) {
+        final indicatorHeight =
+            (viewportHeight / totalHeight).clamp(0.0, 1.0);
+        final scrollPosition = (currentScroll / maxScroll).clamp(0.0, 1.0);
+        setState(() {
+          _scrollIndicatorHeight = indicatorHeight;
+          _scrollProgress = scrollPosition;
+        });
+      } else {
+        // No scrolling needed - hide indicator
+        setState(() {
+          _scrollProgress = 0.0;
+          _scrollIndicatorHeight = 0.0; // Set to 0 to hide
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
     _bgController.dispose();
     _noiseController.dispose();
+    _mainScrollController.dispose();
     super.dispose();
   }
 
@@ -1904,21 +1970,28 @@ class _SimpleMainPageState extends State<SimpleMainPage>
             valueListenable: GlobalLogoBar.fullscreenNotifier,
             builder: (context, isFullscreen, child) {
               final topPadding = GlobalLogoBar.getContentTopPadding();
+              final logoBlockHeight = GlobalLogoBar.getLogoBlockHeight();
+              final bottomBarHeight = _getGlobalBottomBarHeight();
               print('[SimpleMainPage] Applying content top padding: $topPadding');
-              return Padding(
-                padding: EdgeInsets.only(
-                    bottom: _getAdaptiveBottomPadding(),
-                    top: topPadding, // Dynamic padding based on logo visibility
-                    left: 15,
-                    right: 15),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    // Hash row with icons - content part
+              return Stack(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(
+                        bottom: _getAdaptiveBottomPadding(),
+                        top: topPadding, // Dynamic padding based on logo visibility
+                        left: 15,
+                        right: 15),
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 600),
+                        child: SingleChildScrollView(
+                          controller: _mainScrollController,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      // Hash row with icons - content part
                     Padding(
                       padding: const EdgeInsets.only(bottom: 15),
                       child: Row(
@@ -2285,16 +2358,16 @@ class _SimpleMainPageState extends State<SimpleMainPage>
                               GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    _selectedTab = 'Earn';
+                                    _selectedTab = 'Tasks';
                                   });
                                 },
                                 child: Text(
-                                  'Earn',
+                                  'Tasks',
                                   style: TextStyle(
                                     fontFamily: 'Aeroport',
                                     fontSize: 20,
                                     fontWeight: FontWeight.w500,
-                                    color: _selectedTab == 'Earn'
+                                    color: _selectedTab == 'Tasks'
                                         ? AppTheme.textColor
                                         : const Color(0xFF818181),
                                   ),
@@ -2487,10 +2560,10 @@ class _SimpleMainPageState extends State<SimpleMainPage>
                               }).toList(),
                             ),
                           // Play content - shown when Play tab is selected
-                          // if (_selectedTab == 'Earn')
+                          // if (_selectedTab == 'Tasks')
                           //   const Center(
                           //     child: Text(
-                          //       'Earn',
+                          //       'Tasks',
                           //       style: TextStyle(
                           //         fontFamily: 'Aeroport',
                           //         fontSize: 20,
@@ -2499,6 +2572,94 @@ class _SimpleMainPageState extends State<SimpleMainPage>
                           //       ),
                           //     ),
                           //   ),
+                          // Items grid - shown when Items tab is selected
+                          if (_selectedTab == 'Items')
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  // Calculate item width: (availableWidth - crossAxisSpacing) / crossAxisCount
+                                  // Available width accounts for container padding (15px on each side)
+                                  final availableWidth = constraints.maxWidth;
+                                  final itemWidth = (availableWidth - 15.0) / 2.0;
+                                  // Item height = image height (same as width since aspect ratio 1:1) + spacing + text heights
+                                  // Image: itemWidth (1:1 aspect ratio)
+                                  // Spacing: 15px (after image) + 5px (between texts) = 20px
+                                  // Text heights: 20px (title) + 20px (subtitle) = 40px
+                                  // Total: itemWidth + 15 + 20 + 5 + 20 = itemWidth + 60
+                                  final itemHeight = itemWidth + 60.0;
+                                  
+                                  return GridView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    padding: EdgeInsets.zero,
+                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      crossAxisSpacing: 15.0,
+                                      mainAxisSpacing: 20.0,
+                                      mainAxisExtent: itemHeight,
+                                    ),
+                                    itemCount: _items.length,
+                                    itemBuilder: (context, index) {
+                                      final item = _items[index];
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Image - rectangle filling the width
+                                          AspectRatio(
+                                            aspectRatio: 1.0,
+                                            child: SvgPicture.asset(
+                                              item['icon'] as String,
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 15),
+                                          // Title
+                                          Text(
+                                            item['title'] as String,
+                                            style: TextStyle(
+                                              fontFamily: 'Aeroport',
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w400,
+                                              color: AppTheme.textColor,
+                                              height: 20 / 15, // 20px line height / 15px font size
+                                            ),
+                                            textHeightBehavior: const TextHeightBehavior(
+                                              applyHeightToFirstAscent: false,
+                                              applyHeightToLastDescent: false,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 5),
+                                          // Subtitle
+                                          Flexible(
+                                            child: Text(
+                                              item['subtitle'] as String,
+                                              style: const TextStyle(
+                                                fontFamily: 'Aeroport',
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w400,
+                                                color: Color(0xFF818181),
+                                                height: 20 / 15,
+                                              ),
+                                              textHeightBehavior: const TextHeightBehavior(
+                                                applyHeightToFirstAscent: false,
+                                                applyHeightToLastDescent: false,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
                           // Coins list - shown when Coins tab is selected
                           if (_selectedTab == 'Coins')
                             Column(
@@ -2650,10 +2811,72 @@ class _SimpleMainPageState extends State<SimpleMainPage>
                                 );
                               }).toList(),
                             ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
+                      ),
+                    ),
+                  ),
+                  // Scroll indicator - always visible, 5px from right edge
+                  // Height reflects visible area dimension
+                  Positioned(
+                    right: 5,
+                    top: logoBlockHeight,
+                    bottom: bottomBarHeight,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final containerHeight = constraints.maxHeight;
+                        if (containerHeight <= 0 || !_mainScrollController.hasClients) {
+                          return const SizedBox.shrink();
+                        }
+                        
+                        try {
+                          final position = _mainScrollController.position;
+                          final maxScroll = position.maxScrollExtent;
+                          final currentScroll = position.pixels;
+                          final viewportHeight = position.viewportDimension;
+                          final totalHeight = viewportHeight + maxScroll;
+                          
+                          // If no scrolling needed, hide the indicator
+                          if (maxScroll <= 0 || totalHeight <= 0) {
+                            return const SizedBox.shrink();
+                          }
+                          
+                          // Calculate indicator height based on visible area
+                          final indicatorHeightRatio = (viewportHeight / totalHeight).clamp(0.0, 1.0);
+                          final indicatorHeight = (containerHeight * indicatorHeightRatio)
+                              .clamp(0.0, containerHeight);
+                          
+                          // If indicator height is 0 or very small, hide it
+                          if (indicatorHeight <= 0) {
+                            return const SizedBox.shrink();
+                          }
+                          
+                          // Calculate scroll position
+                          final scrollPosition = (currentScroll / maxScroll).clamp(0.0, 1.0);
+                          final availableSpace = (containerHeight - indicatorHeight)
+                              .clamp(0.0, containerHeight);
+                          final topPosition = (scrollPosition * availableSpace)
+                              .clamp(0.0, containerHeight);
+                          
+                          return Align(
+                            alignment: Alignment.topCenter,
+                            child: Padding(
+                              padding: EdgeInsets.only(top: topPosition),
+                              child: Container(
+                                width: 1,
+                                height: indicatorHeight,
+                                color: const Color(0xFF818181),
+                              ),
+                            ),
+                          );
+                        } catch (e) {
+                          return const SizedBox.shrink();
+                        }
+                      },
+                    ),
+                  ),
+                ],
               );
             },
           ),
@@ -4286,7 +4509,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           // Always measure text width using the longest label "(Hour)" to prevent layout shifts
                                           final leftTextPainter = TextPainter(
                                             text: TextSpan(
-                                              text: 'Toncoin (Hour)', // Always use longest text for positioning
+                                              text: 'TON (Hour)', // Always use longest text for positioning
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w400,
                                                 color: AppTheme.textColor,
@@ -4337,7 +4560,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                               Row(
                                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                 children: [
-                                                  Text('Toncoin ${_getResolutionLabel()}',
+                                                  Text('TON ${_getResolutionLabel()}',
                                                       style: TextStyle(
                                                         fontWeight: FontWeight.w400,
                                                         color: AppTheme.textColor,
@@ -4911,13 +5134,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                     mainAxisSize: MainAxisSize.min,
                                     crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
-                                      Text(
+                                      const Text(
                                         'Sendal Rodriges',
                                         style: TextStyle(
                                           fontFamily: 'Aeroport',
                                           fontSize: 15,
                                           fontWeight: FontWeight.w400,
-                                          color: AppTheme.textColor,
+                                          color: Color(0xFF818181),
                                           height: 1.0,
                                         ),
                                         textHeightBehavior:
