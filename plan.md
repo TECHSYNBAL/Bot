@@ -1,3 +1,5 @@
+Languages
+Hovers
 Bot
 Wallet creation and nickname generation
 Jetton lockup

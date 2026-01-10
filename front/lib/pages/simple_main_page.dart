@@ -6,6 +6,7 @@ import '../widgets/global/global_logo_bar.dart';
 import '../telegram_safe_area.dart';
 import 'home_page.dart';
 import 'trade_page.dart';
+import 'profile_page.dart';
 
 class SimpleMainPage extends StatefulWidget {
   const SimpleMainPage({super.key});
@@ -52,7 +53,7 @@ class _SimpleMainPageState extends State<SimpleMainPage>
       {
         'icon': r'assets/sample/mak/+1$.svg',
         'primaryText': 'Incoming task',
-        'secondaryText': 'Send link with \$1 to get \$1',
+        'secondaryText': 'Send link with \$1 and get +\$1',
         'timestamp': '17:11',
         'rightText': 'N/A',
       },
@@ -86,7 +87,7 @@ class _SimpleMainPageState extends State<SimpleMainPage>
       {
         'icon': r'assets/sample/mak/+1$.svg',
         'primaryText': 'Incoming task',
-        'secondaryText': 'Send link with \$1 to get \$1',
+        'secondaryText': 'Send link with \$1 and get +\$1',
         'timestamp': '17:11',
         'rightText': 'N/A',
       },
@@ -390,28 +391,40 @@ class _SimpleMainPageState extends State<SimpleMainPage>
                                   applyHeightToLastDescent: false,
                                 ),
                               ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  const Text(
-                                    'Sendal Rodriges',
-                                    style: TextStyle(
-                                      fontFamily: 'Aeroport',
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w400,
-                                      color: Color(0xFF818181),
-                                      height: 1.0,
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    PageRouteBuilder(
+                                      pageBuilder: (context, animation, secondaryAnimation) => const ProfilePage(),
+                                      transitionDuration: Duration.zero,
+                                      reverseTransitionDuration: Duration.zero,
                                     ),
-                                    textHeightBehavior:
-                                        TextHeightBehavior(
-                                      applyHeightToFirstAscent: false,
-                                      applyHeightToLastDescent: false,
+                                  );
+                                },
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Sendal Rodriges',
+                                      style: TextStyle(
+                                        fontFamily: 'Aeroport',
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w400,
+                                        color: Color(0xFF818181),
+                                        height: 1.0,
+                                      ),
+                                      textHeightBehavior:
+                                          TextHeightBehavior(
+                                        applyHeightToFirstAscent: false,
+                                        applyHeightToLastDescent: false,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  SvgPicture.asset('assets/icons/select.svg', width: 5, height: 10),
-                                ],
+                                    const SizedBox(width: 5),
+                                    SvgPicture.asset('assets/icons/select.svg', width: 5, height: 10),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
